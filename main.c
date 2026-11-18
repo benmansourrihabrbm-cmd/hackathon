@@ -180,7 +180,7 @@ int main(){
 
             // --- COLLISION DETECTION ---
             // 1. Kontrollera om huvudet krockar med väggarna
-            if(snake.body[0].X < 2 || snake.body[0].X > COLS + 1 || snake.body[0].Y < 2 || snake.body[0].Y > ROWS + 1){
+            if(snake.body[0].X < 1 || snake.body[0].X > COLS  || snake.body[0].Y < 1 || snake.body[0].Y > ROWS + 1){
                 gotoxy(1, ROWS + 5);
                 printf("GAME OVER! Du krockade med vaggen.\n");
                 gameOver = 1;
@@ -202,7 +202,7 @@ int main(){
             if(snake.body[0].X == food.X && snake.body[0].Y == food.Y){
                 
                 // --- GER POÄNG ---
-                score += 10; 
+                score += 100; 
                 
                 // --- MASKEN VÄXER ---
                 if(snake.length < MAX_SNAKE_LENGTH){
