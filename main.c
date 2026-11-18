@@ -14,7 +14,6 @@ void showCursor(){
     printf("\e[?25h");
 }
 
-/* msleep(): Sleep for the requested number of milliseconds. */
 int msleep(long msec)
 {
     struct timespec ts;
@@ -70,23 +69,27 @@ void drawBoundaries(){
     }
 }
 
+// --- POÄNGTEXT UNDER SPELET ---
+// Skriver ut aktuell poäng på raden nedanför spelplanen
 void drawScore(int score){
     gotoxy(1, ROWS + 3);
     printf("Poang: %d   ", score);
 }
 
+// --- SLUMPA UT MAT ---
+// Obs: Får inte vara på ormen eller utanför spelplanen!
 void spawnFood(Snake *snake, Point *food){
     int valid = 0;
     while(!valid){
-        // Inre spelplanen ligger på koordinaterna 2 till COLS+1 (och 2 till ROWS+1)
+        // Slumpar fram koordinater innanför väggarna (från 2 till COLS+1 / ROWS+1)
         food->X = (rand() % COLS) + 2;
         food->Y = (rand() % ROWS) + 2;
         
         valid = 1;
-        // Kontrollera att maten inte hamnar på ormen
+        // Kontrollerar att maten inte hamnar på någon av ormens kroppsdelar
         for(int i = 0; i < snake->length; i++){
             if(snake->body[i].X == food->X && snake->body[i].Y == food->Y){
-                valid = 0;
+                valid = 0; // Om den hamnar på ormen, slingan kör om och slumpar nytt
                 break;
             }
         }
@@ -112,10 +115,9 @@ int main(){
     
     int playAgain = 1;
 
-    // Yttre loop som hanterar omstart av spelet
     while(playAgain){
         Snake snake;
-        snake.length = 3; // Återställ startlängd
+        snake.length = 3;
         for(int i = 0; i < snake.length; i++){
             snake.body[i].X = 10 - i;
             snake.body[i].Y = 6;
@@ -131,28 +133,37 @@ int main(){
         spawnFood(&snake, &food);
         drawScore(score);
 
-        // Rita ut startormen
+        // --- ÄNDRA TILL STORT O, SÅ KAN KROPPEN SENARE VARA LILLA o ---
+        // Huvudet (index 0) ritas ut med stort 'O', resten av kroppen med lilla 'o'
         for(int i = 0; i < snake.length; i++){
             gotoxy(snake.body[i].X, snake.body[i].Y);
             printf("%c", (i == 0) ? 'O' : 'o');
         }
 
-        // Inre spelloop för den pågående rundan
         while(!gameOver){
             if(kbhit2()){
-                char ch = getch();
-                if(ch == 'u' && dir != Dir_Down) dir = Dir_Up;
-                else if(ch == 'd' && dir != Dir_Up) dir = Dir_Down;
-                else if(ch == 'l' && dir != Dir_Right) dir = Dir_Left;
-                else if(ch == 'r' && dir != Dir_Left) dir = Dir_Right;
-                else if(ch == 'q') {
-                    gameOver = 1;
-                    playAgain = 0;
-                    break;
+                int ch = getch();
+                if(ch == 0 || ch == 224){
+                    int arrow = getch();
+                    if(arrow == 72 && dir != Dir_Down) dir = Dir_Up;
+                    else if(arrow == 80 && dir != Dir_Up) dir = Dir_Down;
+                    else if(arrow == 75 && dir != Dir_Right) dir = Dir_Left;
+                    else if(arrow == 77 && dir != Dir_Left) dir = Dir_Right;
+                } 
+                else {
+                    if((ch == 'u' || ch == 'U') && dir != Dir_Down) dir = Dir_Up;
+                    else if((ch == 'd' || ch == 'D') && dir != Dir_Up) dir = Dir_Down;
+                    else if((ch == 'l' || ch == 'L') && dir != Dir_Right) dir = Dir_Left;
+                    else if((ch == 'r' || ch == 'R') && dir != Dir_Left) dir = Dir_Right;
+                    else if(ch == 'q' || ch == 'Q') {
+                        gameOver = 1;
+                        playAgain = 0;
+                        break;
+                    }
                 }
             }
 
-            // Rensa svansen
+            // Rensa svansen på skärmen
             gotoxy(snake.body[snake.length - 1].X, snake.body[snake.length - 1].Y);
             printf(" ");
 
@@ -167,7 +178,8 @@ int main(){
             if(dir == Dir_Left) snake.body[0].X--;
             if(dir == Dir_Right) snake.body[0].X++;
 
-            // 1. Kollisionsdetektering med väggar
+            // --- COLLISION DETECTION ---
+            // 1. Kontrollera om huvudet krockar med väggarna
             if(snake.body[0].X < 2 || snake.body[0].X > COLS + 1 || snake.body[0].Y < 2 || snake.body[0].Y > ROWS + 1){
                 gotoxy(1, ROWS + 5);
                 printf("GAME OVER! Du krockade med vaggen.\n");
@@ -175,7 +187,7 @@ int main(){
                 break;
             }
 
-            // 2. Kollisionsdetektering med sig själv
+            // 2. Kontrollera om huvudet krockar med sin egen kropp (självkollision)
             for(int i = 1; i < snake.length; i++){
                 if(snake.body[0].X == snake.body[i].X && snake.body[0].Y == snake.body[i].Y){
                     gotoxy(1, ROWS + 5);
@@ -188,26 +200,30 @@ int main(){
 
             // Kontrollera om ormen äter maten
             if(snake.body[0].X == food.X && snake.body[0].Y == food.Y){
-                score += 10;
+                
+                // --- GER POÄNG ---
+                score += 10; 
+                
+                // --- MASKEN VÄXER ---
                 if(snake.length < MAX_SNAKE_LENGTH){
                     snake.length++;
-                    // Initiera den nya svansdelen så den inte ritas ut på (0,0) första bildrutan
                     snake.body[snake.length - 1] = snake.body[snake.length - 2];
                 }
-                spawnFood(&snake, &food);
-                drawScore(score);
+                
+                // --- SLUMPA UT NY MAT ---
+                spawnFood(&snake, &food); 
+                drawScore(score);         
             }
 
-            // Rita ut ormen (Huvud 'O', kropp 'o')
+            // Rita ut ormen igen på dess nya positioner
             for(int i = 0; i < snake.length; i++){
                 gotoxy(snake.body[i].X, snake.body[i].Y);
                 printf("%c", (i == 0) ? 'O' : 'o');
             }
 
-            msleep(400);
+            msleep(400); // Spelhastighet (paus i millisekunder)
         }
 
-        // Fråga om spelaren vill köra igen (om man inte avslutade med 'q')
         if(playAgain){
             gotoxy(1, ROWS + 6);
             printf("Spela igen? (j/n): ");
